@@ -1146,7 +1146,7 @@ function model(){if(!cur)return;const r=$('objResult');r.hidden=false;$('objRuli
    return;
   }
  const role=$('objGPTRole').value||'chatgpt';
- const systemMsg={role:'system',content:`${STATES[CURRENT_STATE].judgePrompt} Use the ${STATES[CURRENT_STATE].name} State and Regional Tournament judges rubric. Act as opposing counsel in a mock trial objection argument. Base all reasoning strictly on the provided transcript and rules. Use only the facts given in the scenario and do not rely on any outside information. Do not argue that the scenario lacks context or foundation or object on that basis. Keep responses concise and in transcript style.`};
+ const systemMsg={role:'system',content:`${STATES[CURRENT_STATE].judgePrompt} Use the ${STATES[CURRENT_STATE].name} State and Regional Tournament judges rubric. Act as opposing counsel in a mock trial objection argument. Base all reasoning strictly on the provided transcript and rules. Use only the facts given in the scenario, without relying on any outside information. Do not object that the scenario lacks context or foundation. Keep responses concise and in transcript style.`};
  let userMsg;
  if(role==='chatgpt'){
   userMsg={role:'user',content:`Transcript:\nFact: ${cur.fact}\nQuestion: ${cur.q}\nCorrect objection: ${cur.ans} (Rule ${cur.rule}).\nExplain the scenario and state the objection from the objecting counsel's perspective. Do not simulate any response from opposing counsel or the judge. End by inviting my reply and wait for my response.`};
