@@ -611,6 +611,31 @@ const ChatGPTScoring = (() => {
     + `9 — Excellent, highly informative with minor nitpicks.\n`
     + `10 — Exceptional, fully accurate, comprehensive, and highly helpful.`;
 
+  const ARGUMENT_RUBRIC = `Mock Trial Argument & Objection Rubric (1–10)\n\n`
+    + `Checklist Categories (score each, then sum and scale to 10):\n\n`
+    + `Objection Grounds (0–3 points)\n\n`
+    + `0 = Wrong / vague grounds.\n`
+    + `1–2 = Some correct grounds, missing specificity.\n`
+    + `3 = Clearly correct rule + properly stated.\n`
+    + `[Cite rules when possible, e.g., FRE 403, 611(c), 801(d)(2)(A)].\n\n`
+    + `Rule Application (0–2 points)\n\n`
+    + `0 = No link to facts.\n`
+    + `1 = Weak or partial link.\n`
+    + `2 = Strong, specific application of rule to facts.\n\n`
+    + `Rebuttal & Response (0–2 points)\n\n`
+    + `0 = No real response.\n`
+    + `1 = Partial / generic.\n`
+    + `2 = Direct, persuasive, on-point rebuttal.\n\n`
+    + `Argument Quality (0–3 points)\n\n`
+    + `0 = Disorganized, inaccurate, off-record.\n`
+    + `1–2 = Basic structure, some use of facts/law.\n`
+    + `3 = Clear, persuasive, well-structured, accurate use of record.\n\n`
+    + `Scoring Instructions (for ChatGPT):\n\n`
+    + `Add up the category scores (max = 10).\n`
+    + `Report a total 1–10 score.\n`
+    + `Give 2–3 sentences of feedback: (a) what worked, (b) what to fix.\n`
+    + `Always name any evidence rules cited (FRE or jurisdiction given).`;
+
   const PROMPT_TEMPLATE =
 `You are a neutral evaluator.\n\n`+
 `Below is a transcript of an argument or discussion.\n\n`+
@@ -655,7 +680,7 @@ const ChatGPTScoring = (() => {
 `Score: <number from 1 to 10>\n`+
 `Explanation: <short paragraph>`;
 
-  function buildScoringPrompt(transcript, includeRuling=false){
+  function buildScoringPrompt(transcript, includeRuling=false, rubric=RATING_RUBRIC){
     let cleaned = transcript.trim();
     const lowered = cleaned.toLowerCase();
     if (NON_ANSWER_PATTERNS.some(r => r.test(lowered))) {
@@ -666,7 +691,7 @@ const ChatGPTScoring = (() => {
       cleaned += '\n\n[Note: The response is very brief and may lack substantive reasoning; according to the rubric this should likely receive a low score.]';
     }
     const tmpl = includeRuling ? PROMPT_TEMPLATE_RULING : PROMPT_TEMPLATE;
-    return tmpl.replace('{transcript}', cleaned).replace('{rubric}', RATING_RUBRIC);
+    return tmpl.replace('{transcript}', cleaned).replace('{rubric}', rubric);
   }
 
   function parseScoreResponse(text){
@@ -1283,7 +1308,7 @@ function gptStopRecord(){
     return;
    }
   const transcript=userMsgs.map(m=>m.content).join('\n');
-  const prompt=ChatGPTScoring.buildScoringPrompt(transcript,true);
+  const prompt=ChatGPTScoring.buildScoringPrompt(transcript,true, ARGUMENT_RUBRIC);
    try{
     const resp=await fetch('https://api.openai.com/v1/chat/completions',{
      method:'POST',
