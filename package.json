@@ -1,0 +1,8 @@
+{
+  "name": "pls-be-done",
+  "version": "1.0.0",
+  "description": "Mock trial practice tool",
+  "scripts": {
+    "test": "echo \"No tests configured\" && exit 0"
+  }
+}
