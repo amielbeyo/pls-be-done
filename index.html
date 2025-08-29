@@ -626,11 +626,13 @@ const ChatGPTScoring = (() => {
 `   should reflect the transcript and not default to a midpoint score.\n`+
 `5. Deduct points if the argument does not cite a rule of evidence.\n`+
 `6. Provide a brief explanation for why you chose that score, referring to \n`+
-`   the referenced sections of the transcript.\n\n`+
+`   the referenced sections of the transcript.\n`+
+`7. Suggest where the participant can improve and what they should have done differently.\n\n`+
 `Format your response as:\n`+
 `Summary: <detailed summary with references>\n`+
 `Score: <number from 1 to 10>\n`+
-`Explanation: <short paragraph>`;
+`Explanation: <short paragraph>\n`+
+`Improvements: <specific suggestions>`;
 
   const PROMPT_TEMPLATE_RULING =
 `You are a neutral evaluator acting as a mock trial high school judge.\n\n`+
@@ -648,12 +650,14 @@ const ChatGPTScoring = (() => {
 `5. Deduct points if the argument does not cite a rule of evidence.\n`+
 `6. Decide whether the objection should be sustained or overruled.\n`+
 `7. Provide a brief explanation for why you chose that score, referring to \n`+
-`   the referenced sections of the transcript.\n\n`+
+`   the referenced sections of the transcript.\n`+
+`8. Suggest where the participant can improve and what they should have done differently.\n\n`+
 `Format your response as:\n`+
 `Ruling: <Sustained or Overruled>\n`+
 `Summary: <detailed summary with references>\n`+
 `Score: <number from 1 to 10>\n`+
-`Explanation: <short paragraph>`;
+`Explanation: <short paragraph>\n`+
+`Improvements: <specific suggestions>`;
 
   function buildScoringPrompt(transcript, includeRuling=false){
     let cleaned = transcript.trim();
@@ -673,7 +677,8 @@ const ChatGPTScoring = (() => {
     const rulingMatch = text.match(/Ruling:\s*(Sustained|Overruled)/i);
     const summaryMatch = text.match(/Summary:\s*([\s\S]*?)\nScore:/i);
     const scoreMatch = text.match(/Score:\s*(\d+)/i);
-    const explanationMatch = text.match(/Explanation:\s*(.*)/is);
+    const explanationMatch = text.match(/Explanation:\s*([\s\S]*?)(?:\nImprovements?:|\n?$)/i);
+    const improvementMatch = text.match(/Improvements?:\s*([\s\S]*)/i);
     if(!scoreMatch || !explanationMatch){
       throw new Error('Response did not match expected format');
     }
@@ -681,7 +686,8 @@ const ChatGPTScoring = (() => {
       ruling: rulingMatch ? rulingMatch[1] : null,
       summary: summaryMatch ? summaryMatch[1].trim() : '',
       score: Number(scoreMatch[1]),
-      explanation: explanationMatch[1].trim()
+      explanation: explanationMatch[1].trim(),
+      improvement: improvementMatch ? improvementMatch[1].trim() : ''
     };
   }
 
@@ -1092,6 +1098,11 @@ function appendJudgeDecision(res){
  const explain=document.createElement('div');
  explain.innerHTML=`<strong>Explanation:</strong> ${escHTML(res.explanation)}`;
  div.appendChild(explain);
+ if(res.improvement){
+  const impr=document.createElement('div');
+  impr.innerHTML=`<strong>Improvements:</strong> ${escHTML(res.improvement)}`;
+  div.appendChild(impr);
+ }
  out.appendChild(div);
  out.scrollTop=out.scrollHeight;
 }
