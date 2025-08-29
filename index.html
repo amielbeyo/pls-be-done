@@ -1346,63 +1346,88 @@ function gptStopRecord(){
   }
 }
   async function gptRule(){
-   if(!(EngineState.mode==='chatgpt' && EngineState.openaiKey)){
-    alert('ChatGPT mode not enabled or API key missing.');
-    return;
-   }
-   // Require at least one user argument beyond the initial scenario
-   const userMsgs=gptChat.filter(m=>m.role==='user');
-   if(userMsgs.length<=1){
-    alert('Provide your argument before requesting a ruling.');
-    return;
-   }
-  // Label lines and include the original scenario verbatim for the Judge
-  const conversationTagged = gptChat.map(m => {
-    const tag = (m.role === 'user') ? '[USER]' : '[OC]';
-    return `${tag}: ${m.content}`;
-  }).join('\n');
+    if(!(EngineState.mode==='chatgpt' && EngineState.openaiKey)){
+      alert('ChatGPT mode not enabled or API key missing.');
+      return;
+    }
 
-  const scenarioHeader =
+    // Require at least one user argument beyond the initial scenario
+    const userMsgs = gptChat.filter(m => m.role === 'user');
+    if(userMsgs.length <= 1){
+      alert('Provide your argument before requesting a ruling.');
+      return;
+    }
+
+    // Tag the whole conversation for CONTEXT (judge can read it, but must not score it)
+    const fullTagged = gptChat.map(m => {
+      // User = you; Assistant = opposing counsel; anything else = system
+      const tag = (m.role === 'user') ? '[USER]' : (m.role === 'assistant' ? '[OC]' : '[SYS]');
+      return `${tag}: ${m.content}`;
+    }).join('\n');
+
+    // Build a USER-ONLY block that the judge must score
+    const userOnly = gptChat
+      .filter(m => m.role === 'user')
+      .map(m => `[USER]: ${m.content}`)
+      .join('\n');
+
+    // Include the original scenario verbatim so the judge has the same context
+    const scenarioHeader =
 `SCENARIO (verbatim)
 Fact: ${cur.fact}
 Question: ${cur.q}
 Candidate Objection (from prompt): ${cur.ans} (Rule ${cur.rule})`;
 
-  // Judge reads everything, but applies rubric to USER only (keeps your existing behavior)
-  const transcript =
+    // Compose the transcript with explicit instructions:
+    // - CONTEXT is visible but not to be scored
+    // - EVALUATE block is the ONLY material to score
+    const transcript =
 `${scenarioHeader}
 
-TRANSCRIPT
-${conversationTagged}
+CONTEXT (read for background; DO NOT SCORE any of this):
+${fullTagged}
 
-Judge Instructions:
-- Read the SCENARIO and entire transcript.
-- Apply the rubric ONLY to the [USER] lines (ignore [OC] content for scoring).
+EVALUATE (score ONLY the [USER] lines below using the rubric):
+${userOnly}
+
+Scoring rule:
+- Apply the rubric strictly to the EVALUATE block ([USER] lines).
+- Ignore any facts or arguments that appear only in CONTEXT.
 - Do NOT infer or credit facts not in the SCENARIO.`;
 
-  // Keep your existing rubric/template & parser
-  const prompt = ChatGPTScoring.buildScoringPrompt(transcript, true, ChatGPTScoring.ARGUMENT_RUBRIC);
-   try{
-    const resp=await fetch('https://api.openai.com/v1/chat/completions',{
-     method:'POST',
-     headers:{'Content-Type':'application/json','Authorization':`Bearer ${EngineState.openaiKey}`},
-     body:JSON.stringify({model:EngineState.openaiModel||'gpt-4o-mini',messages:[{role:'user',content:prompt}],max_tokens:200,temperature:0.7})
-    });
-    const data=await resp.json();
-    const text=data?.choices?.[0]?.message?.content?.trim()||'';
+    // Keep your existing rubric/template & parser/output
+    const prompt = ChatGPTScoring.buildScoringPrompt(transcript, true, ARGUMENT_RUBRIC);
+
     try{
-      const parsed=ChatGPTScoring.parseScoreResponse(text);
-      appendJudgeDecision(parsed);
-    }catch(err){
-      appendChat('judge',text);
+      const resp = await fetch('https://api.openai.com/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${EngineState.openaiKey}`},
+        body: JSON.stringify({
+          model: EngineState.openaiModel || 'gpt-4o-mini',
+          messages:[{role:'user', content: prompt}],
+          max_tokens: 200,
+          temperature: 0.7
+        })
+      });
+      const data = await resp.json();
+      const text = data?.choices?.[0]?.message?.content?.trim() || '';
+
+      try{
+        const parsed = ChatGPTScoring.parseScoreResponse(text); // unchanged parser
+        appendJudgeDecision(parsed);                            // unchanged UI
+      }catch{
+        // If the model didn't use the expected format, show raw text so you see what happened
+        appendChat('judge', text);
+      }
+
+      gptSendLocked = true;
+      updateGPTSend();
+      $('btnGPTRule').disabled = true;
+
+    }catch(e){
+      console.error('[GPT Rule]', e);
+      appendChat('chatgpt','ChatGPT error.');
     }
-    gptSendLocked=true;
-    updateGPTSend();
-    $('btnGPTRule').disabled=true;
-   }catch(e){
-    console.error('[GPT Rule]',e);
-    appendChat('chatgpt','ChatGPT error.');
-   }
   }
 function wire(){populate();$('btnNewObj').addEventListener('click',newQ);$('btnCheckObj').addEventListener('click',check);$('btnShowModel').addEventListener('click',model);$('objFilter').addEventListener('change',newQ);$('objDiff').addEventListener('change',newQ);$('btnResetStats').addEventListener('click',()=>{stats={};save('mtpl.objStats',stats);renderStats();alert('Mastery stats cleared.')});$('btnGPTNew').addEventListener('click',gptNew);$('btnGPTArgue').addEventListener('click',gptArgue);$('btnGPTSend').addEventListener('click',gptSend);$('btnGPTRecord').addEventListener('click',gptRecord);$('btnGPTStopRecord').addEventListener('click',gptStopRecord);$('btnGPTRule').addEventListener('click',gptRule);$('objGPTInput').addEventListener('input',updateGPTSend);$('btnObjChangeEngine').addEventListener('click',openVideoGate);updateGPTSend();newQ();renderStats()}
  return{wire}
