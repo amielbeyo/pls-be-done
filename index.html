@@ -1318,8 +1318,23 @@ function gptStopRecord(){
     alert('Provide your argument before requesting a ruling.');
     return;
    }
-  const conversation=gptChat.map(m=>`${m.role==='user'?'User':'Opposing Counsel'}: ${m.content}`).join('\n');
-  const transcript=`The transcript includes both User and Opposing Counsel messages. Evaluate and assign a numerical score only for the User arguments; ignore Opposing Counsel lines.\n\n${conversation}`;
+  // Tag every line so the judge can read ALL of it, but score ONLY [USER] lines.
+  const conversationTagged=gptChat.map(m=>{
+   const tag=(m.role==='user')?'[USER]':'[OC]';
+   return `${tag}: ${m.content}`;
+  }).join('\n');
+
+  // Strong, explicit instruction without changing your rubric/template:
+  const transcript=
+`READ EVERYTHING for context, but when applying the rubric and computing the score:
+- SCORE ONLY the arguments in lines beginning with [USER]:
+- TREAT ALL [OC] lines (opposing counsel, judge, assistant) as CONTEXT ONLY, DO NOT score them.
+- If both [USER] and [OC] appear in a single turn, only the [USER] portion may affect the score.
+
+Full transcript:
+${conversationTagged}`;
+
+  // Keep your existing rubric and ruling+summary format
   const prompt=ChatGPTScoring.buildScoringPrompt(transcript,true, ARGUMENT_RUBRIC);
    try{
     const resp=await fetch('https://api.openai.com/v1/chat/completions',{
