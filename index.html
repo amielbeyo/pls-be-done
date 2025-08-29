@@ -1181,14 +1181,52 @@ function model(){if(!cur)return;const r=$('objResult');r.hidden=false;$('objRuli
    alert('ChatGPT mode not enabled or API key missing.');
    return;
   }
- const role=$('objGPTRole').value||'chatgpt';
- const systemMsg={role:'system',content:`${STATES[CURRENT_STATE].judgePrompt} Use the ${STATES[CURRENT_STATE].name} State and Regional Tournament judges rubric. Act as opposing counsel in a mock trial objection argument. Base all reasoning strictly on the provided transcript and rules. Use only facts explicitly stated in the scenario and do not rely on the scenario's artificiality or missing foundation. Keep responses concise and in transcript style. Include realistic examples an average mock trial competitor would face.`};
+ const role = $('objGPTRole').value || 'chatgpt';
+
+ // Stronger system guardrails: NO NEW FACTS, NO HYPOTHETICALS
+ const systemMsg = {
+  role: 'system',
+  content:
+ `${STATES[CURRENT_STATE].judgePrompt}
+You are acting as opposing counsel in a mock trial objection argument.
+Constraints (must follow):
+- Do NOT invent or add any facts, events, injuries, statements, or timelines beyond the SCENARIO block.
+- Do NOT use hypotheticals or "for example" stories.
+- If the question lacks foundation or requires inference beyond the SCENARIO, object on that basis (e.g., Rule 602 speculation, Rule 611, etc.) WITHOUT adding facts.
+- Keep responses concise, transcript-style (1–3 sentences), grounded ONLY in the SCENARIO facts and the rules of evidence.`
+ };
+
  let userMsg;
- if(role==='chatgpt'){
-  userMsg={role:'user',content:`Transcript:\nFact: ${cur.fact}\nQuestion: ${cur.q}\nCorrect objection: ${cur.ans} (Rule ${cur.rule}).\nExplain the scenario and state the objection from the objecting counsel's perspective. Include realistic examples an average mock trial competitor would face. Do not simulate any response from opposing counsel or the judge. End by inviting my reply and wait for my response.`};
-}else{
-  userMsg={role:'user',content:`Transcript:\nFact: ${cur.fact}\nQuestion: ${cur.q}\nCorrect objection: ${cur.ans} (Rule ${cur.rule}).\nExplain the scenario and question, ask for my objection, and wait. Include realistic examples an average mock trial competitor would face. After I object, respond only as opposing counsel and pause again for my next reply.`};
-}
+ if (role === 'chatgpt') {
+  // Opposing counsel states an objection ONLY from the given scenario
+  userMsg = {
+    role: 'user',
+    content:
+ `SCENARIO (verbatim)
+Fact: ${cur.fact}
+Question: ${cur.q}
+
+Task for Opposing Counsel:
+- State the single best objection drawn ONLY from the SCENARIO and Arizona HS Mock Trial Rules (cite rule number, e.g., 602, 611(c), 801/802).
+- Do NOT make up what happened next. Do NOT add facts or examples. No hypotheticals.
+- Keep it to 1–3 sentences max.
+- End with: "Counsel, your response?"`
+  };
+ } else {
+  // User will object; opposing counsel should only prompt, still bound by SCENARIO
+  userMsg = {
+    role: 'user',
+    content:
+ `SCENARIO (verbatim)
+Fact: ${cur.fact}
+Question: ${cur.q}
+
+Task:
+- Briefly set the scene (1 sentence max) WITHOUT adding any facts.
+- Ask me to state my objection based ONLY on the SCENARIO.
+- After I object, respond ONLY as opposing counsel, still WITHOUT adding facts. Keep each turn 1–3 sentences.`
+  };
+ }
  gptChat=[systemMsg,userMsg];
   const out=$('objGPTChat');
   out.hidden=false;
@@ -1318,24 +1356,32 @@ function gptStopRecord(){
     alert('Provide your argument before requesting a ruling.');
     return;
    }
-  // Tag every line so the judge can read ALL of it, but score ONLY [USER] lines.
-  const conversationTagged=gptChat.map(m=>{
-   const tag=(m.role==='user')?'[USER]':'[OC]';
-   return `${tag}: ${m.content}`;
+  // Label lines and include the original scenario verbatim for the Judge
+  const conversationTagged = gptChat.map(m => {
+    const tag = (m.role === 'user') ? '[USER]' : '[OC]';
+    return `${tag}: ${m.content}`;
   }).join('\n');
 
-  // Strong, explicit instruction without changing your rubric/template:
-  const transcript=
-`READ EVERYTHING for context, but when applying the rubric and computing the score:
-- SCORE ONLY the arguments in lines beginning with [USER]:
-- TREAT ALL [OC] lines (opposing counsel, judge, assistant) as CONTEXT ONLY, DO NOT score them.
-- If both [USER] and [OC] appear in a single turn, only the [USER] portion may affect the score.
+  const scenarioHeader =
+`SCENARIO (verbatim)
+Fact: ${cur.fact}
+Question: ${cur.q}
+Candidate Objection (from prompt): ${cur.ans} (Rule ${cur.rule})`;
 
-Full transcript:
-${conversationTagged}`;
+  // Judge reads everything, but applies rubric to USER only (keeps your existing behavior)
+  const transcript =
+`${scenarioHeader}
 
-  // Keep your existing rubric and ruling+summary format
-  const prompt=ChatGPTScoring.buildScoringPrompt(transcript,true, ARGUMENT_RUBRIC);
+TRANSCRIPT
+${conversationTagged}
+
+Judge Instructions:
+- Read the SCENARIO and entire transcript.
+- Apply the rubric ONLY to the [USER] lines (ignore [OC] content for scoring).
+- Do NOT infer or credit facts not in the SCENARIO.`;
+
+  // Keep your existing rubric/template & parser
+  const prompt = ChatGPTScoring.buildScoringPrompt(transcript, true, ARGUMENT_RUBRIC);
    try{
     const resp=await fetch('https://api.openai.com/v1/chat/completions',{
      method:'POST',
