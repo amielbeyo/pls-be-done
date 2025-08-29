@@ -1146,13 +1146,13 @@ function model(){if(!cur)return;const r=$('objResult');r.hidden=false;$('objRuli
    return;
   }
  const role=$('objGPTRole').value||'chatgpt';
- const systemMsg={role:'system',content:`${STATES[CURRENT_STATE].judgePrompt} Use the ${STATES[CURRENT_STATE].name} State and Regional Tournament judges rubric. Act as opposing counsel in a mock trial objection argument. Base all reasoning strictly on the provided transcript and rules. Keep responses concise and in transcript style.`};
+ const systemMsg={role:'system',content:`${STATES[CURRENT_STATE].judgePrompt} Use the ${STATES[CURRENT_STATE].name} State and Regional Tournament judges rubric. Act as opposing counsel in a mock trial objection argument. Base all reasoning strictly on the provided transcript and rules. Keep responses concise and in transcript style. Include realistic examples an average mock trial competitor would face.`};
  let userMsg;
  if(role==='chatgpt'){
-  userMsg={role:'user',content:`Transcript:\nFact: ${cur.fact}\nQuestion: ${cur.q}\nCorrect objection: ${cur.ans} (Rule ${cur.rule}).\nExplain the scenario and state the objection from the objecting counsel's perspective. Do not simulate any response from opposing counsel or the judge. End by inviting my reply and wait for my response.`};
- }else{
-  userMsg={role:'user',content:`Transcript:\nFact: ${cur.fact}\nQuestion: ${cur.q}\nCorrect objection: ${cur.ans} (Rule ${cur.rule}).\nExplain the scenario and question, ask for my objection, and wait. After I object, respond only as opposing counsel and pause again for my next reply.`};
- }
+  userMsg={role:'user',content:`Transcript:\nFact: ${cur.fact}\nQuestion: ${cur.q}\nCorrect objection: ${cur.ans} (Rule ${cur.rule}).\nExplain the scenario and state the objection from the objecting counsel's perspective. Include realistic examples an average mock trial competitor would face. Do not simulate any response from opposing counsel or the judge. End by inviting my reply and wait for my response.`};
+}else{
+  userMsg={role:'user',content:`Transcript:\nFact: ${cur.fact}\nQuestion: ${cur.q}\nCorrect objection: ${cur.ans} (Rule ${cur.rule}).\nExplain the scenario and question, ask for my objection, and wait. Include realistic examples an average mock trial competitor would face. After I object, respond only as opposing counsel and pause again for my next reply.`};
+}
  gptChat=[systemMsg,userMsg];
   const out=$('objGPTChat');
   out.hidden=false;
