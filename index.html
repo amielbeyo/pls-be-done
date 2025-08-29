@@ -612,7 +612,7 @@ const ChatGPTScoring = (() => {
     + `10 — Exceptional, fully accurate, comprehensive, and highly helpful.`;
 
   const PROMPT_TEMPLATE =
-`You are a neutral evaluator.\n\n`+
+`You are a neutral evaluator acting as a mock trial high school judge.\n\n`+
 `Below is a transcript of an argument or discussion.\n\n`+
 `Transcript:\n{transcript}\n\n`+
 `Rating rubric (1–10 scale):\n{rubric}\n\n`+
@@ -633,7 +633,7 @@ const ChatGPTScoring = (() => {
 `Explanation: <short paragraph>`;
 
   const PROMPT_TEMPLATE_RULING =
-`You are a neutral evaluator.\n\n`+
+`You are a neutral evaluator acting as a mock trial high school judge.\n\n`+
 `Below is a transcript of an argument or discussion.\n\n`+
 `Transcript:\n{transcript}\n\n`+
 `Rating rubric (1–10 scale):\n{rubric}\n\n`+
