@@ -613,11 +613,11 @@ const ChatGPTScoring = (() => {
 
   const PROMPT_TEMPLATE =
 `You are a neutral evaluator.\n\n`+
-`Below is a transcript of an argument or discussion.\n\n`+
+`Below is the full transcript of an argument or discussion. Each line begins with \"Setup:\", \"User:\", or \"ChatGPT:\". The ChatGPT lines are for context only. Evaluate only the lines starting with \"User:\".\n\n`+
 `Transcript:\n{transcript}\n\n`+
 `Rating rubric (1–10 scale):\n{rubric}\n\n`+
 `Your task:\n`+
-`1. Read the entire transcript carefully from start to finish.\n`+
+`1. Read the entire transcript carefully from start to finish, ignoring lines not starting with \"User:\".\n`+
 `2. Summarize the transcript in detail, citing at least three direct quotes \n`+
 `   or paraphrased references from different parts of the transcript to \n`+
 `   demonstrate you read all of it.\n`+
@@ -634,11 +634,11 @@ const ChatGPTScoring = (() => {
 
   const PROMPT_TEMPLATE_RULING =
 `You are a neutral evaluator.\n\n`+
-`Below is a transcript of an argument or discussion.\n\n`+
+`Below is the full transcript of an argument or discussion. Each line begins with \"Setup:\", \"User:\", or \"ChatGPT:\". The ChatGPT lines are for context only. Evaluate only the lines starting with \"User:\".\n\n`+
 `Transcript:\n{transcript}\n\n`+
 `Rating rubric (1–10 scale):\n{rubric}\n\n`+
 `Your task:\n`+
-`1. Read the entire transcript carefully from start to finish.\n`+
+`1. Read the entire transcript carefully from start to finish, ignoring lines not starting with \"User:\".\n`+
 `2. Summarize the transcript in detail, citing at least three direct quotes \n`+
 `   or paraphrased references from different parts of the transcript to \n`+
 `   demonstrate you read all of it.\n`+
@@ -1271,6 +1271,15 @@ function gptStopRecord(){
    try{gptRecog.stop();}catch(e){}
   }
 }
+ function buildArgumentTranscript(chat){
+  return chat
+    .filter(m=>m.role!=='system')
+    .map((m,idx)=>{
+      if(idx===0 && m.role==='user') return `Setup: ${m.content}`;
+      return `${m.role==='assistant'?'ChatGPT':'User'}: ${m.content}`;
+    })
+    .join('\n');
+ }
   async function gptRule(){
    if(!(EngineState.mode==='chatgpt' && EngineState.openaiKey)){
     alert('ChatGPT mode not enabled or API key missing.');
@@ -1282,8 +1291,8 @@ function gptStopRecord(){
     alert('Provide your argument before requesting a ruling.');
     return;
    }
-  const transcript=userMsgs.map(m=>m.content).join('\n');
-  const prompt=ChatGPTScoring.buildScoringPrompt(transcript,true);
+ const transcript=buildArgumentTranscript(gptChat);
+ const prompt=ChatGPTScoring.buildScoringPrompt(transcript,true);
    try{
     const resp=await fetch('https://api.openai.com/v1/chat/completions',{
      method:'POST',
