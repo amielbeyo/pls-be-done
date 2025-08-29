@@ -716,7 +716,7 @@ const ChatGPTScoring = (() => {
     };
   }
 
-  return { buildScoringPrompt, parseScoreResponse };
+  return { buildScoringPrompt, parseScoreResponse, ARGUMENT_RUBRIC };
 })();
 
 function formatTranscripts(pairs){
@@ -1381,7 +1381,7 @@ Judge Instructions:
 - Do NOT infer or credit facts not in the SCENARIO.`;
 
   // Keep your existing rubric/template & parser
-  const prompt = ChatGPTScoring.buildScoringPrompt(transcript, true, ARGUMENT_RUBRIC);
+  const prompt = ChatGPTScoring.buildScoringPrompt(transcript, true, ChatGPTScoring.ARGUMENT_RUBRIC);
    try{
     const resp=await fetch('https://api.openai.com/v1/chat/completions',{
      method:'POST',
