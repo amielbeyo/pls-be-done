@@ -2127,6 +2127,19 @@ const RulesQuiz=(function(){
  function sh(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
  function rn(n){return Math.floor(Math.random()*(n))}
  function pick(a,n){return sh(a).slice(0,n)}
+ function uniqOpts(correct, pool, fallback){
+   const seen=new Set([correct]);
+   const out=[correct];
+   function fill(arr){
+     for(const opt of sh(arr)){
+       if(out.length>=4) break;
+       if(!seen.has(opt)){ out.push(opt); seen.add(opt); }
+     }
+   }
+   fill(pool);
+   if(out.length<4 && fallback) fill(fallback);
+   return sh(out)
+ }
  function subsOf(r){
    const out=[];
    (r.subs||[]).forEach(s=>{
@@ -2160,12 +2173,12 @@ function qBasic(){
   if(type==='titleFromNumber'){
     const wrongPool=set.filter(x=>x.id!==base.id);
     const wrong=(wrongPool.length>=3?wrongPool:ALL.filter(x=>x.id!==base.id));
-    const opts=sh([base.title,...pick(wrong.map(x=>x.title),3)]);
+    const opts=uniqOpts(base.title, wrong.map(x=>x.title), ALL.map(x=>x.title));
     return{type,q:`Rule ${base.id} is titled:`,options:opts,answer:base.title,explain:`Rule ${base.id}: ${base.title}. ${base.text||''}`}
   }
   const wrongPool=set.filter(x=>x.id!==base.id);
   const wrong=(wrongPool.length>=3?wrongPool:ALL.filter(x=>x.id!==base.id));
-  const opts=sh([base.id,...pick(wrong.map(x=>x.id),3)]);
+  const opts=uniqOpts(base.id, wrong.map(x=>x.id), ALL.map(x=>x.id));
   return{type:'numberFromTitle',q:`Which rule number covers \u201c${base.title}\u201d?`,options:opts,answer:base.id,explain:`\u201c${base.title}\u201d is Rule ${base.id}.`}
 }
 
@@ -2175,14 +2188,14 @@ function qSub(){
   if(rn(2)===0){
     const pool=set.filter(x=>x.parentId===base.parentId&&x.code!==base.code);
     const wrong=(pool.length>=3?pool:set.filter(x=>x.code!==base.code));
-    const opts=sh([base.title,...pick(wrong.map(x=>x.title),3)]);
+    const opts=uniqOpts(base.title, wrong.map(x=>x.title), ALLS.map(x=>x.title));
      return{type:'subTitleFromCode',q:`What does Rule ${base.code} cover?`,options:opts,answer:base.title,explain:`Rule ${base.code}: ${base.title} (under ${base.parentTitle}).`}
    }
    const pool=set.filter(x=>x.parentId===base.parentId&&x.code!==base.code);
    const wrong=(pool.length>=3?pool:set.filter(x=>x.code!==base.code));
-   const opts=sh([base.code,...pick(wrong.map(x=>x.code),3)]);
+   const opts=uniqOpts(base.code, wrong.map(x=>x.code), ALLS.map(x=>x.code));
    return{type:'subCodeFromTitle',q:`Which subsection covers \u201c${base.title}\u201d?`,options:opts,answer:base.code,explain:`\u201c${base.title}\u201d is at Rule ${base.code}.`}
- }
+}
 
 function show(){
  $('quizBody').innerHTML=''; $('quizExplain').textContent='';
