@@ -1396,7 +1396,7 @@ Scoring rule:
 - Do NOT infer or credit facts not in the SCENARIO.`;
 
     // Keep your existing rubric/template & parser/output
-    const prompt = ChatGPTScoring.buildScoringPrompt(transcript, true, ARGUMENT_RUBRIC);
+    const prompt = ChatGPTScoring.buildScoringPrompt(transcript, true, ChatGPTScoring.ARGUMENT_RUBRIC);
 
     try{
       const resp = await fetch('https://api.openai.com/v1/chat/completions',{
