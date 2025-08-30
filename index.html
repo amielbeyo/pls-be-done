@@ -617,7 +617,7 @@ const ChatGPTScoring = (() => {
     + `0 = Wrong / vague grounds.\n`
     + `1–2 = Some correct grounds, missing specificity.\n`
     + `3 = Clearly correct rule + properly stated.\n`
-    + `[Cite rules when possible, e.g., FRE 403, 611(c), 801(d)(2)(A)].\n\n`
+    + `[Cite rules when possible, e.g., FRE 403, 611(c), 801(d)(2)(A). Missing rule citations only warrant a minor (0.5 point) deduction.]\n\n`
     + `Rule Application (0–2 points)\n\n`
     + `0 = No link to facts.\n`
     + `1 = Weak or partial link.\n`
@@ -649,15 +649,15 @@ const ChatGPTScoring = (() => {
 `3. Assign a score from 1 to 10 using the rubric above (rate “I don't know” or non-answers as 1).\n`+
 `4. Consider coherence, evidence, clarity, and persuasiveness. The rating \n`+
 `   should reflect the transcript and not default to a midpoint score.\n`+
-`5. Deduct points if the argument does not cite a rule of evidence.\n`+
+`5. If no rule of evidence is cited, deduct up to 0.5 points (minor deduction).\n`+
 `6. Provide a brief explanation for why you chose that score, referring to \n`+
 `   the referenced sections of the transcript.\n`+
-`7. Suggest where the participant can improve and what they should have done differently.\n\n`+
+`7. Suggest where the participant can improve and what they should have done differently, pointing out specific lines or phrases to revise.\n\n`+
 `Format your response as:\n`+
 `Summary: <detailed summary with references>\n`+
 `Score: <number from 1 to 10>\n`+
 `Explanation: <short paragraph>\n`+
-`Improvements: <specific suggestions>`;
+`Improvements: <specific, actionable suggestions referencing where to change the argument>`;
 
   const PROMPT_TEMPLATE_RULING =
 `You are a neutral evaluator acting as a mock trial high school judge.\n\n`+
@@ -672,17 +672,17 @@ const ChatGPTScoring = (() => {
 `3. Assign a score from 1 to 10 using the rubric above (rate “I don't know” or non-answers as 1).\n`+
 `4. Consider coherence, evidence, clarity, and persuasiveness. The rating \n`+
 `   should reflect the transcript and not default to a midpoint score.\n`+
-`5. Deduct points if the argument does not cite a rule of evidence.\n`+
+`5. If no rule of evidence is cited, deduct up to 0.5 points (minor deduction).\n`+
 `6. Decide whether the objection should be sustained or overruled.\n`+
 `7. Provide a brief explanation for why you chose that score, referring to \n`+
 `   the referenced sections of the transcript.\n`+
-`8. Suggest where the participant can improve and what they should have done differently.\n\n`+
+`8. Suggest where the participant can improve and what they should have done differently, pointing out specific lines or phrases to revise.\n\n`+
 `Format your response as:\n`+
 `Ruling: <Sustained or Overruled>\n`+
 `Summary: <detailed summary with references>\n`+
 `Score: <number from 1 to 10>\n`+
 `Explanation: <short paragraph>\n`+
-`Improvements: <specific suggestions>`;
+`Improvements: <specific, actionable suggestions referencing where to change the argument>`;
 
   function buildScoringPrompt(transcript, includeRuling=false, rubric=RATING_RUBRIC){
     let cleaned = transcript.trim();
